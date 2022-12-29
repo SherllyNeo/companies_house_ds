@@ -4,7 +4,7 @@ import pandas as pd
 from collections import defaultdict 
 import os
 
-API_KEY = "7075fd4a-4946-443b-8e98-ac95cfc12c8d"
+API_KEY = os.getenv("KEY")
 print(API_KEY)
 
 class CH:
