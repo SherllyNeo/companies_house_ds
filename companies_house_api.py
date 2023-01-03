@@ -7,19 +7,18 @@ import os
 import json
 import pandas as pd
 
-API_KEY = os.getenv("KEY")
 
 
 class CH:
 
-    def __init__(self):
-        self.auth = HTTPBasicAuth(username=API_KEY,password="")
+    def __init__(self,api_key):
         self.search_url = "https://api.company-information.service.gov.uk/advanced-search/companies"
         self.company_info_url = "https://api.company-information.service.gov.uk/company/"
         self.tb = pd.read_html('https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/resources/companyprofile?v=latest')[0]
         self.tb_no_obj = self.tb[self.tb.Type != 'object'].Name.tolist()
         self.columns = list(map(lambda x: re.sub("\.","_",x),self.tb_no_obj))
-        
+        self.api_key = api_key
+        self.auth = HTTPBasicAuth(username=api_key,password="")
         
 
     def search(self,name_inc="",name_ex="",company_status=None,company_sub_typ=None,company_typ=None,diss_from=None,diss_to=None,inc_from=None,inc_to=None,location=None,sic_codes=[],result_size="50",index_start=None) -> list:
