@@ -147,8 +147,14 @@ class CH:
         dfs = list(map(self.get_company_data,company_numbers_list))
         master_df = pd.concat(dfs,ignore_index=True)
         return master_df
+    def get_people_from_company_list(self,company_list: list) -> pd.DataFrame:
+        return None
         
+    def get_revenue_from_company_list(self,company_list: list) -> pd.DataFrame:
+        return None
 
+    def get_employ_data_from_company_list(self,company_list: list) -> pd.DataFrame:
+        return None
 
 
 
