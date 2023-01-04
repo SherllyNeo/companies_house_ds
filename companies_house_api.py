@@ -1,4 +1,5 @@
 import re
+import time
 import requests
 from requests.auth import HTTPBasicAuth
 import pandas as pd
@@ -6,7 +7,7 @@ from collections import defaultdict
 import os
 import json
 import pandas as pd
-
+from io import StringIO
 
 
 class CH:
@@ -19,9 +20,28 @@ class CH:
         self.columns = list(map(lambda x: re.sub("\.","_",x),self.tb_no_obj))
         self.api_key = api_key
         self.auth = HTTPBasicAuth(username=api_key,password="")
+
+    def bare_download(self,sic_code):
+        print("starting download for sic code... !! \n \n ")
+        """ uses non-api to download 5000 results from a certain sic code """
+        url = f"https://find-and-update.company-information.service.gov.uk/advanced-search/download?companyNameIncludes=&companyNameExcludes=&registeredOfficeAddress=&incorporationFromDay=&incorporationFromMonth=&incorporationFromYear=&incorporationToDay=&incorporationToMonth=&incorporationToYear=&sicCodes={sic_code}&dissolvedFromDay=&dissolvedFromMonth=&dissolvedFromYear=&dissolvedToDay=&dissolvedToMonth=&dissolvedToYear="
+        headers = {'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                   'Accept-Encoding':'gzip, deflate, br',
+                   'Accept-Language':'en-US,en;q=0.5',
+                   'Connection':'keep-alive',
+                    'Cookie':'ch_cookie_consent=eyJ1c2VySGFzQWxsb3dlZENvb2tpZXMiOiJ5ZXMiLCJjb29raWVzQWxsb3dlZCI6WyJwaXdpayIsImdvb2dsZSJdfQ==; _pk_ref.2.4ed3=%5B%22%22%2C%22%22%2C1672798625%2C%22https%3A%2F%2Fwww.gov.uk%2F%22%5D; _pk_id.2.4ed3=c9c395ce0186f650.1672355369.; __SID=ss9oJQfrHaDf06xT/aC/WfY0aQsOCM1fMRlGo9WrUi+YJftNt2iCeDs; _pk_ses.2.4ed3=1; search.web.user=dc3fd129-a351-4c94-9e14-9b232bd6cac6',
+                   'Host':'find-and-update.company-information.service.gov.uk',
+                   'Referer':f'https://find-and-update.company-information.service.gov.uk/advanced-search/get-results?companyNameIncludes=&companyNameExcludes=&registeredOfficeAddress=&incorporationFromDay=&incorporationFromMonth=&incorporationFromYear=&incorporationToDay=&incorporationToMonth=&incorporationToYear=&sicCodes={sic_code}&dissolvedFromDay=&dissolvedFromMonth=&dissolvedFromYear=&dissolvedToDay=&dissolvedToMonth=&dissolvedToYear=',
+
+                   'User-Agent':'Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0}'}
+        response = requests.get(url=url,headers=headers)
+        csvStringIO = StringIO(response.text)
+        df =  pd.read_csv(csvStringIO)
+        return df
         
 
-    def search(self,name_inc="",name_ex="",company_status=None,company_sub_typ=None,company_typ=None,diss_from=None,diss_to=None,inc_from=None,inc_to=None,location=None,sic_codes=[],result_size="50",index_start=None) -> list:
+    def search(self,name_inc=None,name_ex="",company_status=None,company_sub_typ=None,company_typ=None,diss_from=None,diss_to=None,inc_from=None,inc_to=None,location=None,sic_codes=[],result_size="50",index_start=None) -> list:
+        time.sleep(1)
         """ wrapped for company house api advanced search """
         params = {
         'company_name_includes':name_inc,
@@ -39,13 +59,18 @@ class CH:
         'start_index':index_start,
         }
         response = requests.get(url=self.search_url,params=params,auth=self.auth)
-        print(response)
-        company_numbers =  list(map(lambda x: x['company_number'],response.json()['items']))
-        df = self.make_dataframe_from_numbers(company_numbers)
+        if response.status_code == 200:
+            print(response)
+            company_numbers =  list(map(lambda x: x['company_number'],response.json()['items']))
+            df = self.make_dataframe_from_numbers(company_numbers)
+        else:
+            print(f"error {response.status_code} returning empty dataframe")
+            df = pd.DataFrame()
         return df
 
     def get_company_data(self,company_number: str) -> pd.DataFrame:
         """ helper method to get dataframe for a company """
+        time.sleep(1)
         response = requests.get(url=self.company_info_url+company_number,auth=self.auth)
         ch_data = defaultdict(str,response.json())
         accounts = defaultdict(str,ch_data['accounts'])
