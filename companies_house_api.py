@@ -156,6 +156,38 @@ class CH:
     def get_employ_data_from_company_list(self,company_list: list) -> pd.DataFrame:
         return None
 
+    def list_get_index(self,seq,item):
+        """ helper function that is like .index but returns a list of matching index """
+        start_at = -1
+        locs = []
+        while True:
+            try:
+                loc = seq.index(item, start_at+1)
+            except ValueError:
+                break
+            else:
+                locs.append(loc)
+                start_at=loc
+        return locs
+    def find_sic_label(self,index,map_dict):
+        """ function to find sic label based on a map between sic labels and their index """
+        list_ = list(map_dict.keys())
+        list_.append(index)
+        sorted_list = sorted(list_)
+        index_list = self.list_get_index(sorted_list,index)
+        index_of_item = max(index_list)
+        return map_dict[sorted_list[index_of_item-1]]
+
+    def get_sic_spreadsheet(self):
+        """ method to get dataframe of sic codes and their larger groups from companies house gov """
+        url = 'https://resources.companieshouse.gov.uk/sic/'
+        table = pd.read_html(url)[0]
+        section_rows = table[table.Code.str.contains('Section')]
+        map_dic = {u:v for u,v in zip(section_rows.index,section_rows['Code'])}
+        table['label'] = table.apply(lambda row: self.find_sic_label(row.name,map_dic),axis=1)
+        table_cleaned = table[~table.Code.str.contains('Section')]
+        return table_cleaned
+
 
 
 
